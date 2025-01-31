@@ -1,0 +1,70 @@
+---
+title: 'Data-Cleaning'
+author: "Joshua Lin"
+format: 
+  html: 
+    embed-resources: true
+    toc: true
+    code-fold: true
+---
+
+```{r}
+suppressMessages(library(dplyr))
+suppressMessages(library(tidyr))
+suppressMessages(library(lubridate))
+
+airbnb <- read.csv("Data/raw-data/nyc-airbnb-listings-2024.csv")
+
+# First 5 rows in a dataset
+# head(airbnb)
+
+airbnb <- airbnb |> select(-license, -last_review)
+colnames(airbnb)
+```
+
+> Note: There are 18 columns, after dropping columns "license" and "last_review", where they can be divided into 4 major categories:
+> 
+> 1. Listing Details
+> 
+> 2. Host Information
+> 
+> 3. Location
+> 
+> 4. Availability & Reviews
+
+Upon glancing at the dataset, I can notice that there are quite a substantial of missing values. 
+
+For example regarding missing values in columns "name" and "host_name", I decided to fill the missing values with "Unknown". Additionally as a result of "price" being essential for analysis, I removed listings where the price is missing or 0. 
+
+```{r}
+# Handling missing data
+airbnb$name[is.na(airbnb$name)] <- "Unknown"
+airbnb$name[is.na(airbnb$host_name)] <- "Unknown"
+airbnb$reviews_per_month[is.na(airbnb$reviews_per_month)] <- 0
+
+airbnb <- airbnb |> filter(!is.na(price) & price > 0)
+
+# Removing duplicates from dataset
+airbnb <- airbnb |> distinct()
+
+# Making sure data types are consistent
+airbnb$price <- as.numeric(airbnb$price)
+airbnb$minimum_nights <- as.numeric(airbnb$minimum_nights)
+airbnb$review_per_month <- as.numeric(airbnb$reviews_per_month)
+
+# Using IQR to handle extreme outliers in the "price" col
+Q1 <- quantile(airbnb$price, 0.25, na.rm = TRUE)
+Q3 <- quantile(airbnb$price, 0.75, na.rm = TRUE)
+IQR <- Q3 - Q1
+price_upper_limit <- min(Q3 + 1.5 * IQR, 1000)
+airbnb <- airbnb %>% filter(price <= price_upper_limit)
+
+airbnb <- airbnb %>% filter(minimum_nights <= 365)
+
+airbnb <- airbnb %>% filter(reviews_per_month <= 10)
+
+write.csv(airbnb, "Data/processed-data/nyc-airbnb-listings-2024-cleaned.csv")
+
+# any(is.na(airbnb))
+```
+> We can conclude that our new dataset has no missing values. Therefore, it is now cleaned and ready for analysis. 

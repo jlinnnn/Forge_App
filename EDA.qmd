@@ -1,0 +1,136 @@
+---
+title: 'Exploratory Data Analysis'
+author: "Joshua Lin"
+format: 
+  html: 
+    embed-resources: true
+    toc: true
+    code-fold: true
+---
+
+```{r}
+suppressMessages(library(dplyr))
+suppressMessages(library(tidyr))
+suppressMessages(library(ggplot2))
+
+airbnb <- read.csv("Data/processed-data/nyc-airbnb-listings-2024-cleaned.csv")
+
+# head(airbnb)
+
+# Gives the summary statistics
+summary(airbnb)
+```
+
+```{r}
+# Price Distribution
+ggplot(airbnb, aes(x = price)) +
+    geom_histogram(bins = 50, fill = "steelblue", color = "white") +
+    scale_x_continuous() +
+    labs(
+        title = "Distribution of Airbnb Prices in NYC",
+        x = "Price (USD per night)",
+        y = "Frequency"
+    ) +
+    theme_minimal()
+```
+
+This histogram depicts how Airbnb listing prices are distributed across NYC.
+
+```{r}
+# Distribution of Room Types
+
+# Count room types and reorder
+room_type_counts <- airbnb %>%
+    count(room_type)
+
+# Create the bar chart
+ggplot(room_type_counts, aes(x = reorder(room_type, n), y = n, fill = room_type)) +
+    geom_bar(stat = "identity", color = "black") +
+    geom_text(aes(label = n), vjust = -0.5, size = 4) +
+    scale_fill_manual(values = c("#2E8B57", "#1C4E80", "#6B6B6B", "#FFD700", "#A73535")) +
+    labs(
+        title = "Distribution of Room Types in NYC Airbnb Listings",
+        x = "Room Type",
+        y = "Number of Listings",
+        fill = "Room Type"
+    ) +
+    theme_minimal() +
+    theme(
+        axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none"
+    )
+```
+
+This bar chart visualizzes the number of Airbnb listings for each room type in NYC. Not that "entire home/apt" is the most common listing type. 
+
+```{r}
+# Count listings by borough
+borough_counts <- airbnb %>%
+    count(neighbourhood_group, sort = TRUE)
+
+# Calculate percentages for labeling
+borough_counts <- borough_counts %>%
+    mutate(percentage = round((n / sum(n)) * 100, 1))
+
+# Custom color palette
+nyc_palette <- c(
+    "Bronx" = "#A73535", "Brooklyn" = "#B5A21F",
+    "Manhattan" = "#2E8B57", "Queens" = "#1C4E80", "Staten Island" = "#A86EAA"
+)
+
+# Plot borough distribution
+ggplot(borough_counts, aes(x = reorder(neighbourhood_group, n), y = n, fill = neighbourhood_group)) +
+    geom_bar(stat = "identity", width = 0.6, color = "black") +
+    scale_fill_manual(values = nyc_palette) +
+    labs(
+        title = "Distribution of Listings by Borough",
+        x = "Borough",
+        y = "Number of Listings"
+    ) +
+    theme_minimal() +
+    coord_flip() +
+    theme(
+        axis.text.y = element_text(size = 12),
+        legend.position = "none"
+    )
+```
+
+This bar chart shows the number of Airbnb listings for each NYC borough. Most of the listings are in Manhattan. Staten Island and Bronx had the lowest number of ratings, implying they are less popular for short-term rentals. 
+
+```{r}
+# Count listings by neighborhood and select top 10
+top_neighborhoods <- airbnb %>%
+    count(neighbourhood, sort = TRUE) %>%
+    top_n(10, n) %>%
+    arrange(desc(n))
+
+# Calculate percentages for labeling
+top_neighborhoods <- top_neighborhoods %>%
+    mutate(percentage = round((n / sum(n)) * 100, 1))
+
+# Custom color palette
+nyc_palette <- c(
+    "Bedford-Stuyvesant" = "#A73535", "Bushwick" = "#FFD700",
+    "Chelsea" = "#6B6B6B", "Crown Heights" = "#1C4E80",
+    "Harlem" = "#2E8B57", "Hell’s Kitchen" = "#FF5733",
+    "Midtown" = "#3498DB", "Upper East Side" = "#8E44AD",
+    "Upper West Side" = "#E67E22", "Williamsburg" = "#D35400"
+)
+
+# Top 10 neighborhoods
+ggplot(top_neighborhoods, aes(x = reorder(neighbourhood, n), y = n, fill = neighbourhood)) +
+    geom_bar(stat = "identity", width = 0.6, color = "black") +
+    scale_fill_manual(values = nyc_palette) +
+    labs(
+        title = "Top 10 Most Popular Neighborhoods for Airbnb Listings",
+        x = "Neighborhood",
+        y = "Number of Listings"
+    ) +
+    theme_minimal() +
+    coord_flip() +
+    theme(
+        axis.text.y = element_text(size = 10),
+        legend.position = "none"
+    )
+```
+This bar chart shows the top 10 neighborhoods in NYC with the highest number of listings, emphasizing the most popular areas. Note that Bedford-Stuynesant has the most listings with over 1500 listings. 
